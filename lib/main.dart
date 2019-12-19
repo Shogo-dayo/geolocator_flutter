@@ -20,81 +20,83 @@ class MyApp extends StatelessWidget {
 }
 
 class GeolocationExample extends StatefulWidget {
+
   @override
-  GeolocationExampleState createState() => new GeolocationExampleState();
+  GeolocationExampleState createState() => GeolocationExampleState();
 }
 
 
-class GeolocationExampleState extends State {
+class GeolocationExampleState extends State<GeolocationExample> {
 
-  Geolocator _geolocator;
-  Position _position;
+  Position position; // Geolocator
 
   @override
   void initState() {
     super.initState();
-
-
-    _geolocator = Geolocator();
-
-    void checkPermission() {
-      _geolocator.checkGeolocationPermissionStatus().then((status) {
-        print('status: $status');
-      });
-      _geolocator.checkGeolocationPermissionStatus(
-          locationPermission: GeolocationPermission.locationAlways).then((
-          status) {
-        print('always status: $status');
-      });
-      _geolocator.checkGeolocationPermissionStatus(
-          locationPermission: GeolocationPermission.locationWhenInUse)
-        ..then((status) {
-          print('whenInUse status: $status');
-        });
-    }
-
-
-    LocationOptions locationOptions = LocationOptions(
-        accuracy: LocationAccuracy.high, distanceFilter: 1);
-
-    checkPermission();
-    //    updateLocation();
-
-    StreamSubscription positionStream = _geolocator.getPositionStream(
-        locationOptions).listen((Position position) {
-      position = position;
-    });
-
-    void updateLocation() async {
-      try {
-        Position newPosition = await Geolocator().getCurrentPosition(
-            desiredAccuracy: LocationAccuracy.high)
-            .timeout(new Duration(seconds: 5));
-
-        setState(() {
-          _position = newPosition;
-        });
-      } catch (e) {
-        print('Error: ${e.toString()}');
-      }
-    }
+    _getLocation(context);
   }
 
+  Future<void> _getLocation(context) async {
+    Position _currentPosition = await Geolocator()
+        .getCurrentPosition(desiredAccuracy: LocationAccuracy.high); // ここで精度を「high」に指定している
+    print(_currentPosition);
+    setState(() {
+      position = _currentPosition;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text("Geolocator example"),
-      ),
-      body: Center(
-          child: Text(
-              'Latitude: ${_position != null ? _position.latitude.toString() : '0'},'
-                  ' Longitude: ${_position != null ? _position.longitude.toString() : '0'}'
-          )
-      ),
+    return FutureBuilder<GeolocationStatus>(
+        future: Geolocator().checkGeolocationPermissionStatus(),
+        builder:
+            (BuildContext context, AsyncSnapshot<GeolocationStatus> snapshot) {
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.data == GeolocationStatus.denied) {
+            return Text(
+              'Access to location denied',
+              textAlign: TextAlign.center,
+            );
+          }
+
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: <Widget>[
+                Text(
+                  "Location Infomation",
+                  style: TextStyle(
+                      fontSize: 20.0
+                  ),
+                ),
+
+                Padding(
+                    padding: EdgeInsets.all(10)
+                ),
+
+                Text("Your Current Location is :",
+                  style: TextStyle(fontSize: 12)
+                  ),
+
+                Padding(
+                    padding: EdgeInsets.all(20)
+                ),
+
+                Text("lat : ${position.latitude}",
+                  style: TextStyle(fontSize: 15)
+                ),
+
+                Text("lng : ${position.longitude}",
+                    style: TextStyle(fontSize: 15)
+                ),
+              ],
+            ),
+          );
+        }
     );
   }
 }
